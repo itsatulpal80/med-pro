@@ -21,6 +21,7 @@ import { ScreenContainer } from "../../components/common/ScreenContainer";
 import type { TabParamList } from "../../navigation/types";
 import { ocrApi } from "../../services/api";
 import { useStockStore } from "../../store/stockStore";
+import { useAuthStore } from "../../store/authStore";
 import type { OCRMedicine, OCRResult } from "../../utils/types";
 import { colors, radius, spacing } from "../../utils/theme";
 
@@ -38,7 +39,9 @@ export function ScanScreen({}: Props) {
   const [saving, setSaving] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [ocrData, setOcrData] = useState<OCRResult | null>(null);
+  const { user } = useAuthStore();
   const { saveOCRData, fetchStock } = useStockStore();
+  const storeTitle = `${user?.name?.trim() || "My"}'s Medical Store`;
 
   const processImage = async (imageUri: string) => {
     setLoading(true);
@@ -118,6 +121,11 @@ export function ScanScreen({}: Props) {
     }
   };
 
+  const scanAgain = () => {
+    setPreview(null);
+    setOcrData(null);
+  };
+
   const openCamera = async () => {
     const permission = await Camera.requestCameraPermissionsAsync();
     if (!permission.granted) {
@@ -155,7 +163,7 @@ export function ScanScreen({}: Props) {
   return (
     <ScreenContainer>
       <Text style={styles.title}>Scan Purchase Bill</Text>
-      <Text style={styles.storeTitle}>Radhe Medical Store</Text>
+      <Text style={styles.storeTitle}>{storeTitle}</Text>
       <AppCard style={styles.infoCard}>
         <Text style={styles.instructionsTitle}>How to scan</Text>
         <Text style={styles.instructionsText}>• Place the bill on a flat surface</Text>
@@ -191,7 +199,10 @@ export function ScanScreen({}: Props) {
 
       {ocrData ? (
         <AppCard>
-          <Text style={styles.instructionsTitle}>Verify OCR Data</Text>
+          <Text style={styles.instructionsTitle}>OCR Preview</Text>
+          <Text style={styles.previewSubTitle}>
+            Review extracted details before adding to stock
+          </Text>
           <Text style={styles.inputLabel}>Supplier Name</Text>
           <TextInput
             style={styles.input}
@@ -288,7 +299,21 @@ export function ScanScreen({}: Props) {
             )}
           />
 
-          <AppButton title="Add To Stock List" onPress={addToStock} loading={saving} />
+          <View style={styles.actionRow}>
+            <AppButton
+              title="Scan Again"
+              variant="secondary"
+              onPress={scanAgain}
+              style={styles.actionBtn}
+              disabled={saving}
+            />
+            <AppButton
+              title="Confirm & Add Stock"
+              onPress={addToStock}
+              loading={saving}
+              style={styles.actionBtn}
+            />
+          </View>
         </AppCard>
       ) : null}
     </ScreenContainer>
@@ -315,7 +340,13 @@ const styles = StyleSheet.create({
   instructionsTitle: {
     color: colors.text,
     fontWeight: "700",
+    marginBottom: 6,
+    fontSize: 16,
+  },
+  previewSubTitle: {
+    color: colors.textMuted,
     marginBottom: spacing.sm,
+    fontSize: 12,
   },
   instructionsText: {
     color: "#3F5960",
@@ -385,6 +416,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     color: colors.text,
     fontWeight: "700",
+    fontSize: 14,
   },
   medicineCard: {
     borderWidth: 1,
@@ -403,6 +435,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   third: {
+    flex: 1,
+  },
+  actionRow: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  actionBtn: {
     flex: 1,
   },
 });

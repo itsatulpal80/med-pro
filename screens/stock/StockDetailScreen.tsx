@@ -6,6 +6,7 @@ import Toast from "react-native-toast-message";
 import { AppCard } from "../../components/common/AppCard";
 import { ScreenContainer } from "../../components/common/ScreenContainer";
 import type { RootStackParamList } from "../../navigation/types";
+import { useAuthStore } from "../../store/authStore";
 import { useStockStore } from "../../store/stockStore";
 import { colors, radius, spacing } from "../../utils/theme";
 import type { Medicine } from "../../utils/types";
@@ -14,9 +15,11 @@ type Props = NativeStackScreenProps<RootStackParamList, "StockDetail">;
 
 export function StockDetailScreen({ route }: Props) {
   const { stockId } = route.params;
+  const { user } = useAuthStore();
   const { fetchStockDetail } = useStockStore();
   const [item, setItem] = useState<Medicine | null>(null);
   const [loading, setLoading] = useState(true);
+  const storeTitle = `${user?.name?.trim() || "My"}'s Medical Store`;
 
   useEffect(() => {
     fetchStockDetail(stockId)
@@ -46,7 +49,7 @@ export function StockDetailScreen({ route }: Props) {
   return (
     <ScreenContainer>
       <Text style={styles.title}>Stock Management</Text>
-      <Text style={styles.storeTitle}>Radhe Medical Store</Text>
+      <Text style={styles.storeTitle}>{storeTitle}</Text>
       <Text style={styles.backText}>← Back to list</Text>
 
       <AppCard style={styles.productCard}>

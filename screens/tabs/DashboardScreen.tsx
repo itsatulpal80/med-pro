@@ -21,10 +21,24 @@ export function DashboardScreen({ navigation }: Props) {
   const rootNavigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { items, fetchStock } = useStockStore();
-  const { logout } = useAuthStore();
+  const { logout, user } = useAuthStore();
   const [backendStats, setBackendStats] = React.useState<DashboardResponse | null>(
     null,
   );
+  const now = React.useMemo(() => new Date(), []);
+  const userName = user?.name?.trim() || "User";
+  const storeTitle = `${userName}'s Medical Store`;
+  const greeting =
+    now.getHours() < 12
+      ? "Good Morning"
+      : now.getHours() < 18
+        ? "Good Afternoon"
+        : "Good Evening";
+  const dateLabel = now.toLocaleDateString("en-IN", {
+    weekday: "long",
+    day: "2-digit",
+    month: "short",
+  });
 
   React.useEffect(() => {
     fetchStock().catch(() => {
@@ -71,8 +85,8 @@ export function DashboardScreen({ navigation }: Props) {
     <ScreenContainer>
       <View style={styles.header}>
         <View>
-          <Text style={styles.storeName}>Radhe Medical Store</Text>
-          <Text style={styles.subtitle}>Friday, 10 April · Good Afternoon!</Text>
+          <Text style={styles.storeName}>{storeTitle}</Text>
+          <Text style={styles.subtitle}>{`${dateLabel} · ${greeting}, ${userName}`}</Text>
         </View>
         <AppButton title="Logout" variant="ghost" onPress={logout} />
       </View>
@@ -235,25 +249,33 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    gap: spacing.md,
+    gap: spacing.sm,
   },
   storeName: {
-    fontSize: 30,
-    fontWeight: "800",
+    fontSize: 22,
+    fontWeight: "700",
     color: colors.primaryDark,
   },
   subtitle: {
     color: colors.textMuted,
-    marginTop: 4,
+    marginTop: 2,
     fontWeight: "500",
+    fontSize: 12,
   },
   statsWrap: {
     flexDirection: "row",
-    gap: spacing.sm,
+    gap: 10,
   },
   statCard: {
     flex: 1,
-    borderRadius: radius.md,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#EDEFF2",
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 4,
   },
   statRow: {
     flexDirection: "row",
@@ -262,21 +284,21 @@ const styles = StyleSheet.create({
   },
   statTitle: {
     color: colors.textMuted,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "600",
   },
   statIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 9,
     alignItems: "center",
     justifyContent: "center",
   },
   statValue: {
-    marginTop: spacing.xs,
+    marginTop: 4,
     color: colors.text,
     fontWeight: "800",
-    fontSize: 28,
+    fontSize: 22,
   },
   statSubtitle: {
     color: colors.textMuted,
@@ -286,10 +308,10 @@ const styles = StyleSheet.create({
   alertCard: {
     backgroundColor: "#FCEEEE",
     borderColor: "#F5CDCD",
-    borderRadius: radius.md,
+    borderRadius: 12,
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 14,
+    paddingVertical: 10,
   },
   alertIconWrap: {
     width: 28,
@@ -306,10 +328,11 @@ const styles = StyleSheet.create({
   alertTitle: {
     color: "#D64545",
     fontWeight: "700",
+    fontSize: 13,
   },
   alertSubtitle: {
     color: "#8B5757",
-    fontSize: 13,
+    fontSize: 12,
   },
   alertBadge: {
     minWidth: 28,
@@ -331,31 +354,31 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: colors.text,
     fontWeight: "700",
-    fontSize: 24,
+    fontSize: 18,
   },
   quickActions: {
-    marginTop: spacing.sm,
-    gap: spacing.sm,
+    marginTop: 8,
+    gap: 10,
   },
   actionRow: {
-    minHeight: 72,
-    borderRadius: radius.md,
+    minHeight: 62,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: "#FFFFFF",
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: 12,
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
+    gap: 10,
   },
   actionRowPrimary: {
     backgroundColor: colors.primary,
     borderColor: colors.primary,
   },
   actionIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 9,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.primarySoft,
@@ -369,15 +392,15 @@ const styles = StyleSheet.create({
   actionTitle: {
     color: colors.text,
     fontWeight: "700",
-    fontSize: 16,
+    fontSize: 14,
   },
   actionTitlePrimary: {
     color: "#FFFFFF",
   },
   actionSubtitle: {
     color: colors.textMuted,
-    fontSize: 12,
-    marginTop: 2,
+    fontSize: 11,
+    marginTop: 1,
   },
   actionSubtitlePrimary: {
     color: "#E8FFF4",

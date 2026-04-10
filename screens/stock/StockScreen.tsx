@@ -17,6 +17,7 @@ import Toast from "react-native-toast-message";
 import { AppCard } from "../../components/common/AppCard";
 import { ScreenContainer } from "../../components/common/ScreenContainer";
 import type { RootStackParamList, TabParamList } from "../../navigation/types";
+import { useAuthStore } from "../../store/authStore";
 import { useStockStore } from "../../store/stockStore";
 import { colors, radius, spacing } from "../../utils/theme";
 
@@ -26,6 +27,7 @@ type Props = BottomTabScreenProps<TabParamList, "Stock">;
 export function StockScreen({}: Props) {
   const rootNavigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { user } = useAuthStore();
   const { items, fetchStock, loading, addManualStock } = useStockStore();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterType>("all");
@@ -57,6 +59,7 @@ export function StockScreen({}: Props) {
       return matchesSearch && matchesDistributor;
     });
   }, [items, search, filter, distributor]);
+  const storeTitle = `${user?.name?.trim() || "My"}'s Medical Store`;
 
   const closeManualModal = () => {
     if (savingManual) return;
@@ -130,7 +133,7 @@ export function StockScreen({}: Props) {
   return (
     <ScreenContainer>
       <Text style={styles.title}>Stock Management</Text>
-      <Text style={styles.storeTitle}>Radhe Medical Store</Text>
+      <Text style={styles.storeTitle}>{storeTitle}</Text>
 
       <View style={styles.searchRow}>
         <View style={styles.searchWrap}>

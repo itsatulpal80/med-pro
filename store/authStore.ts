@@ -1,7 +1,7 @@
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 import { create } from "zustand";
-import { authApi, TOKEN_KEY } from "../services/api";
+import { authApi, clearAuthStorage, TOKEN_KEY, USER_KEY } from "../services/api";
 
 type User = {
   id: string;
@@ -30,14 +30,19 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       if (Platform.OS === "web") {
         const token = globalThis.localStorage?.getItem(TOKEN_KEY) ?? null;
-        set({ token, hydrated: true });
+        const rawUser = globalThis.localStorage?.getItem(USER_KEY);
+        const user = rawUser ? (JSON.parse(rawUser) as User) : null;
+        set({ token, user, hydrated: true });
         return;
       }
 
       const token = await SecureStore.getItemAsync(TOKEN_KEY);
-      set({ token, hydrated: true });
+      const rawUser = await SecureStore.getItemAsync(USER_KEY);
+      const user = rawUser ? (JSON.parse(rawUser) as User) : null;
+      set({ token, user, hydrated: true });
     } catch {
-      set({ token: null, hydrated: true });
+      await clearAuthStorage();
+      set({ token: null, user: null, hydrated: true });
     }
   },
 
@@ -47,8 +52,10 @@ export const useAuthStore = create<AuthState>((set) => ({
       const { data } = await authApi.login(mobile, password);
       if (Platform.OS === "web") {
         globalThis.localStorage?.setItem(TOKEN_KEY, data.token);
+        globalThis.localStorage?.setItem(USER_KEY, JSON.stringify(data.user));
       } else {
         await SecureStore.setItemAsync(TOKEN_KEY, data.token);
+        await SecureStore.setItemAsync(USER_KEY, JSON.stringify(data.user));
       }
       set({ token: data.token, user: data.user, loading: false });
     } catch (error) {
@@ -63,8 +70,10 @@ export const useAuthStore = create<AuthState>((set) => ({
       const { data } = await authApi.register(name, mobile, password);
       if (Platform.OS === "web") {
         globalThis.localStorage?.setItem(TOKEN_KEY, data.token);
+        globalThis.localStorage?.setItem(USER_KEY, JSON.stringify(data.user));
       } else {
         await SecureStore.setItemAsync(TOKEN_KEY, data.token);
+        await SecureStore.setItemAsync(USER_KEY, JSON.stringify(data.user));
       }
       set({ token: data.token, user: data.user, loading: false });
     } catch (error) {
@@ -74,11 +83,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   logout: async () => {
-    if (Platform.OS === "web") {
-      globalThis.localStorage?.removeItem(TOKEN_KEY);
-    } else {
-      await SecureStore.deleteItemAsync(TOKEN_KEY);
-    }
+    await clearAuthStorage();
     set({ token: null, user: null });
   },
 }));

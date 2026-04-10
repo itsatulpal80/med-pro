@@ -11,6 +11,17 @@ import type {
 } from "../utils/types";
 
 const TOKEN_KEY = "medstock_token";
+const USER_KEY = "medstock_user";
+
+async function clearAuthStorage() {
+  if (Platform.OS === "web") {
+    globalThis.localStorage?.removeItem(TOKEN_KEY);
+    globalThis.localStorage?.removeItem(USER_KEY);
+    return;
+  }
+  await SecureStore.deleteItemAsync(TOKEN_KEY);
+  await SecureStore.deleteItemAsync(USER_KEY);
+}
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -27,6 +38,16 @@ api.interceptors.request.use(async (config) => {
   }
   return config;
 });
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error?.response?.status === 401) {
+      await clearAuthStorage();
+    }
+    return Promise.reject(error);
+  },
+);
 
 type BackendMedicine = {
   _id: string;
@@ -181,4 +202,4 @@ export const dashboardApi = {
   getStats: () => api.get<DashboardResponse>("/dashboard"),
 };
 
-export { TOKEN_KEY };
+export { TOKEN_KEY, USER_KEY, clearAuthStorage };
