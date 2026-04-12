@@ -170,14 +170,14 @@ export const stockApi = {
       invoiceNumber: payload.invoiceNumber,
       invoiceDate: payload.invoiceDate,
       items: payload.medicines.map((item) => ({
-        name: item.name,
-        distributor: item.distributor || "Unknown",
-        batchNumber: item.batchNumber,
-        expiryDate: item.expiryDate || item.expiry,
-        quantity: Number(item.quantity),
-        purchaseRate: Number(item.purchaseRate),
-        mrp: Number(item.mrp),
-      })),
+          name: item.name?.trim() || "",
+          distributor: item.distributor || "Unknown",
+          batchNumber: item.batchNumber?.trim() || "",
+          expiryDate: (item.expiryDate || item.expiry || "").trim(),
+          quantity: Number(item.quantity) || 0,
+          purchaseRate: Number(item.purchaseRate) || 0,
+          mrp: Number(item.mrp) || 0,
+        })),
     }),
   addManualStock: (payload: ManualStockInput) =>
     api.post("/stock/add-from-ocr", {

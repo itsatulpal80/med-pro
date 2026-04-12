@@ -1,8 +1,10 @@
 import Constants from "expo-constants";
 
 const envUrl = process.env.EXPO_PUBLIC_API_BASE_URL;
-const manifestUrl = Constants.expoConfig?.extra?.apiBaseUrl as string | undefined;
-const productionUrl = "https://med-pro-backend.vercel.app";
+const manifestUrl = Constants.expoConfig?.extra?.apiBaseUrl as
+  | string
+  | undefined;
+const productionUrl = "https://expo-backend-f9es.vercel.app/";
 
 const isPlaceholder = (url?: string) =>
   Boolean(url && /example-medstock-api\.com/i.test(url));
