@@ -43,11 +43,16 @@ export function ScanScreen({}: Props) {
   const { saveOCRData, fetchStock } = useStockStore();
   const storeTitle = `${user?.name?.trim() || "My"}'s Medical Store`;
 
-  const processImage = async (imageUri: string) => {
+  const processImage = async (asset: ImagePicker.ImagePickerAsset) => {
+    const imageUri = asset.uri;
     setLoading(true);
     setPreview(imageUri);
     try {
-      const { data } = await ocrApi.scanBill(imageUri);
+      const { data } = await ocrApi.scanBill({
+        uri: imageUri,
+        fileName: asset.fileName,
+        mimeType: asset.mimeType,
+      });
       setOcrData(data);
       Toast.show({ type: "success", text1: "OCR completed" });
     } catch (error) {
@@ -139,7 +144,7 @@ export function ScanScreen({}: Props) {
     });
 
     if (!result.canceled) {
-      await processImage(result.assets[0].uri);
+      await processImage(result.assets[0]);
     }
   };
 
@@ -156,7 +161,7 @@ export function ScanScreen({}: Props) {
     });
 
     if (!result.canceled) {
-      await processImage(result.assets[0].uri);
+      await processImage(result.assets[0]);
     }
   };
 

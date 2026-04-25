@@ -17,8 +17,10 @@
     },
     "android": {
       "permissions": [
-        "CAMERA",
-        "READ_EXTERNAL_STORAGE"
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
       ],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
@@ -27,7 +29,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.itsatulpal8.expoMed"
     },
     "web": {
       "output": "static",
@@ -54,7 +57,10 @@
       "reactCompiler": true
     },
     "extra": {
-      "apiBaseUrl": "https://expo-backend-f9es.vercel.app/"
+      "apiBaseUrl": "https://expo-backend-f9es.vercel.app/",
+      "eas": {
+        "projectId": "43aed725-d98e-4480-adf7-fb69aa75612e"
+      }
     }
   }
 }

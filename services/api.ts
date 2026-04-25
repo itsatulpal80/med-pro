@@ -112,9 +112,32 @@ export const authApi = {
 };
 
 export const ocrApi = {
-  scanBill: async (imageUri: string) => {
-    const fileName = imageUri.split("/").pop() || "bill.jpg";
-    const fileType = fileName.endsWith(".png") ? "image/png" : "image/jpeg";
+  scanBill: async (
+    input:
+      | string
+      | {
+          uri: string;
+          fileName?: string | null;
+          mimeType?: string | null;
+        },
+  ) => {
+    const imageUri = typeof input === "string" ? input : input.uri;
+    const providedName = typeof input === "string" ? undefined : input.fileName || undefined;
+    const providedMimeType =
+      typeof input === "string" ? undefined : input.mimeType || undefined;
+
+    const inferredName = imageUri.split("/").pop() || "bill.jpg";
+    const fileName = providedName || inferredName;
+    const extension = fileName.split(".").pop()?.toLowerCase();
+    const fileType =
+      providedMimeType ||
+      (extension === "png"
+        ? "image/png"
+        : extension === "webp"
+          ? "image/webp"
+          : extension === "heic" || extension === "heif"
+            ? "image/heic"
+            : "image/jpeg");
     const formData = new FormData();
 
     if (Platform.OS === "web") {
