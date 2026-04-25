@@ -52,6 +52,7 @@ export function ScanScreen({}: Props) {
         uri: imageUri,
         fileName: asset.fileName,
         mimeType: asset.mimeType,
+        base64: asset.base64,
       });
       setOcrData(data);
       Toast.show({ type: "success", text1: "OCR completed" });
@@ -141,6 +142,7 @@ export function ScanScreen({}: Props) {
     const result = await ImagePicker.launchCameraAsync({
       mediaTypes: ["images"],
       quality: 0.8,
+      base64: true,
     });
 
     if (!result.canceled) {
@@ -158,6 +160,7 @@ export function ScanScreen({}: Props) {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
       quality: 0.8,
+      base64: true,
     });
 
     if (!result.canceled) {

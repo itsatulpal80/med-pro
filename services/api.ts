@@ -119,12 +119,14 @@ export const ocrApi = {
           uri: string;
           fileName?: string | null;
           mimeType?: string | null;
+          base64?: string | null;
         },
   ) => {
     const imageUri = typeof input === "string" ? input : input.uri;
     const providedName = typeof input === "string" ? undefined : input.fileName || undefined;
     const providedMimeType =
       typeof input === "string" ? undefined : input.mimeType || undefined;
+    const base64Image = typeof input === "string" ? undefined : input.base64 || undefined;
 
     const inferredName = imageUri.split("/").pop() || "bill.jpg";
     const fileName = providedName || inferredName;
@@ -152,10 +154,27 @@ export const ocrApi = {
       } as unknown as Blob);
     }
 
-    const response = await api.post<BackendOCRResponse>("/ocr/scan", formData, {
-      // OCR can take longer due to provider retries/fallbacks.
-      timeout: 120000,
-    });
+    let response;
+    try {
+      response = await api.post<BackendOCRResponse>("/ocr/scan", formData, {
+        // OCR can take longer due to provider retries/fallbacks.
+        timeout: 120000,
+      });
+    } catch (error) {
+      // Mobile multipart can fail intermittently on some Android/iOS builds.
+      // Retry via JSON base64 payload, which backend supports as well.
+      if (base64Image) {
+        response = await api.post<BackendOCRResponse>(
+          "/ocr/scan",
+          {
+            base64Image: `data:${fileType};base64,${base64Image}`,
+          },
+          { timeout: 120000 },
+        );
+      } else {
+        throw error;
+      }
+    }
 
     return {
       ...response,
