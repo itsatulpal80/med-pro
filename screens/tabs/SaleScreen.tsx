@@ -1,27 +1,28 @@
 import React from "react";
-import { StyleSheet, Text } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { AppCard } from "../../components/common/AppCard";
 import { ScreenContainer } from "../../components/common/ScreenContainer";
-import { colors } from "../../utils/theme";
+import { ScreenHeader } from "../../components/common/ScreenHeader";
+import { colors, spacing } from "../../utils/theme";
 
 export function SaleScreen() {
   return (
-    <ScreenContainer>
-      <Text style={styles.title}>Sale</Text>
-      <AppCard>
-        <Text style={styles.text}>
-          Create new sales bills and manage checkout flow here.
-        </Text>
-      </AppCard>
+    <ScreenContainer contentStyle={{ padding: 0 }}>
+      <ScreenHeader title="Sale" />
+      <View style={styles.content}>
+        <AppCard>
+          <Text style={styles.text}>
+            Create new sales bills and manage checkout flow here.
+          </Text>
+        </AppCard>
+      </View>
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  title: {
-    fontSize: 28,
-    fontWeight: "800",
-    color: colors.primaryDark,
+  content: {
+    padding: spacing.md,
   },
   text: {
     color: colors.textMuted,

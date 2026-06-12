@@ -18,6 +18,7 @@ import Toast from "react-native-toast-message";
 import { AppButton } from "../../components/common/AppButton";
 import { AppCard } from "../../components/common/AppCard";
 import { ScreenContainer } from "../../components/common/ScreenContainer";
+import { ScreenHeader } from "../../components/common/ScreenHeader";
 import type { TabParamList } from "../../navigation/types";
 import { ocrApi } from "../../services/api";
 import { useStockStore } from "../../store/stockStore";
@@ -169,9 +170,9 @@ export function ScanScreen({}: Props) {
   };
 
   return (
-    <ScreenContainer>
-      <Text style={styles.title}>Scan Purchase Bill</Text>
-      <Text style={styles.storeTitle}>{storeTitle}</Text>
+    <ScreenContainer contentStyle={{ padding: 0 }}>
+      <ScreenHeader title="Scan Purchase Bill" />
+      <View style={styles.contentContainer}>
       <AppCard style={styles.infoCard}>
         <Text style={styles.instructionsTitle}>How to scan</Text>
         <Text style={styles.instructionsText}>• Place the bill on a flat surface</Text>
@@ -249,59 +250,78 @@ export function ScanScreen({}: Props) {
             scrollEnabled={false}
             renderItem={({ item, index }) => (
               <View style={styles.medicineCard}>
-                <TextInput
-                  style={styles.input}
-                  value={item.name}
-                  onChangeText={(value) => updateMedicine(index, "name", value)}
-                  placeholder="Medicine Name"
-                />
-                <View style={styles.row}>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabelTiny}>Name</Text>
                   <TextInput
-                    style={[styles.input, styles.half]}
-                    value={item.batchNumber}
-                    onChangeText={(value) =>
-                      updateMedicine(index, "batchNumber", value)
-                    }
-                    placeholder="Batch"
-                  />
-                  <TextInput
-                    style={[styles.input, styles.half]}
-                    value={item.expiryDate || item.expiry}
-                    onChangeText={(value) =>
-                      updateMedicine(index, "expiryDate", value)
-                    }
-                    placeholder="Expiry YYYY-MM-DD"
+                    style={styles.input}
+                    value={item.name}
+                    onChangeText={(value) => updateMedicine(index, "name", value)}
+                    placeholder="Medicine Name"
                   />
                 </View>
-                <View style={styles.row}>
-                  <TextInput
-                    style={[styles.input, styles.third]}
-                    keyboardType="numeric"
-                    value={String(item.quantity)}
-                    onChangeText={(value) => updateMedicine(index, "quantity", value)}
-                    placeholder="Qty"
-                  />
-                  <TextInput
-                    style={[styles.input, styles.third]}
-                    keyboardType="numeric"
-                    value={String(item.purchaseRate)}
-                    onChangeText={(value) =>
-                      updateMedicine(index, "purchaseRate", value)
-                    }
-                    placeholder="Purchase"
-                  />
-                  <TextInput
-                    style={[styles.input, styles.third]}
-                    keyboardType="numeric"
-                    value={String(item.mrp)}
-                    onChangeText={(value) => updateMedicine(index, "mrp", value)}
-                    placeholder="MRP"
-                  />
+                <View style={styles.rowWrap}>
+                  <View style={styles.flexItem}>
+                    <Text style={styles.inputLabelTiny}>Batch</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={item.batchNumber}
+                      onChangeText={(value) =>
+                        updateMedicine(index, "batchNumber", value)
+                      }
+                      placeholder="Batch"
+                    />
+                  </View>
+                  <View style={styles.flexItem}>
+                    <Text style={styles.inputLabelTiny}>Expiry</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={item.expiryDate || item.expiry}
+                      onChangeText={(value) =>
+                        updateMedicine(index, "expiryDate", value)
+                      }
+                      placeholder="YYYY-MM"
+                    />
+                  </View>
+                </View>
+                <View style={styles.rowWrap}>
+                  <View style={styles.flexItemThird}>
+                    <Text style={styles.inputLabelTiny}>Qty</Text>
+                    <TextInput
+                      style={styles.input}
+                      keyboardType="numeric"
+                      value={String(item.quantity)}
+                      onChangeText={(value) => updateMedicine(index, "quantity", value)}
+                      placeholder="Qty"
+                    />
+                  </View>
+                  <View style={styles.flexItemThird}>
+                    <Text style={styles.inputLabelTiny}>Purchase</Text>
+                    <TextInput
+                      style={styles.input}
+                      keyboardType="numeric"
+                      value={String(item.purchaseRate)}
+                      onChangeText={(value) =>
+                        updateMedicine(index, "purchaseRate", value)
+                      }
+                      placeholder="Purchase"
+                    />
+                  </View>
+                  <View style={styles.flexItemThird}>
+                    <Text style={styles.inputLabelTiny}>MRP</Text>
+                    <TextInput
+                      style={styles.input}
+                      keyboardType="numeric"
+                      value={String(item.mrp)}
+                      onChangeText={(value) => updateMedicine(index, "mrp", value)}
+                      placeholder="MRP"
+                    />
+                  </View>
                 </View>
                 <AppButton
                   title="Remove"
                   variant="ghost"
                   onPress={() => removeMedicine(index)}
+                  style={{ marginTop: spacing.xs }}
                 />
               </View>
             )}
@@ -324,22 +344,15 @@ export function ScanScreen({}: Props) {
           </View>
         </AppCard>
       ) : null}
+      </View>
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  title: {
-    fontSize: 26,
-    fontWeight: "700",
-    color: colors.primaryDark,
-    textAlign: "center",
-  },
-  storeTitle: {
-    color: colors.primaryDark,
-    textAlign: "center",
-    fontSize: 24,
-    fontWeight: "800",
+  contentContainer: {
+    padding: spacing.md || 16,
+    gap: spacing.md || 16,
   },
   infoCard: {
     borderRadius: radius.md,
@@ -432,18 +445,30 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: spacing.sm,
     marginBottom: spacing.sm,
-    gap: spacing.xs,
+    gap: spacing.sm,
     backgroundColor: "#FAFCFB",
   },
-  row: {
+  inputGroup: {
+    gap: 2,
+  },
+  inputLabelTiny: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: colors.textMuted,
+    marginBottom: 4,
+  },
+  rowWrap: {
     flexDirection: "row",
-    gap: spacing.xs,
+    flexWrap: "wrap",
+    gap: spacing.sm,
   },
-  half: {
+  flexItem: {
     flex: 1,
+    minWidth: "40%",
   },
-  third: {
+  flexItemThird: {
     flex: 1,
+    minWidth: "25%",
   },
   actionRow: {
     flexDirection: "row",

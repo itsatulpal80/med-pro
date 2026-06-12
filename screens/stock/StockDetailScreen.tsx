@@ -1,10 +1,34 @@
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, StyleSheet, Text, View } from "react-native";
+
+const formatExpiryDate = (dateStr: string) => {
+  if (!dateStr) return "N/A";
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const months = [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
+    return `${months[d.getMonth()]} ${d.getFullYear()}`;
+  } catch {
+    return dateStr;
+  }
+};
+
+import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import Toast from "react-native-toast-message";
 import { AppCard } from "../../components/common/AppCard";
 import { ScreenContainer } from "../../components/common/ScreenContainer";
+import { ScreenHeader } from "../../components/common/ScreenHeader";
 import type { RootStackParamList } from "../../navigation/types";
 import { useAuthStore } from "../../store/authStore";
 import { useStockStore } from "../../store/stockStore";
@@ -13,7 +37,7 @@ import type { Medicine } from "../../utils/types";
 
 type Props = NativeStackScreenProps<RootStackParamList, "StockDetail">;
 
-export function StockDetailScreen({ route }: Props) {
+export function StockDetailScreen({ route, navigation }: Props) {
   const { stockId } = route.params;
   const { user } = useAuthStore();
   const { fetchStockDetail } = useStockStore();
@@ -32,207 +56,383 @@ export function StockDetailScreen({ route }: Props) {
 
   if (loading) {
     return (
-      <ScreenContainer>
-        <ActivityIndicator size="large" color={colors.primary} />
+      <ScreenContainer contentStyle={{ padding: 0 }}>
+        <ScreenHeader title="Stock Management" subtitle={storeTitle} />
+        <View style={styles.loaderWrap}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loaderText}>Loading details...</Text>
+        </View>
       </ScreenContainer>
     );
   }
 
   if (!item) {
     return (
-      <ScreenContainer>
-        <Text style={styles.empty}>No details available</Text>
+      <ScreenContainer contentStyle={{ padding: 0 }}>
+        <ScreenHeader title="Stock Management" subtitle={storeTitle} />
+        <View style={styles.loaderWrap}>
+          <Ionicons name="alert-circle-outline" size={48} color={colors.textMuted} />
+          <Text style={styles.emptyTitle}>No details available</Text>
+          <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={16} color={colors.primary} />
+            <Text style={styles.backButtonText}>Go Back</Text>
+          </Pressable>
+        </View>
       </ScreenContainer>
     );
   }
 
+  const totalBatches = item.batches?.length ?? 0;
+
   return (
-    <ScreenContainer>
-      <Text style={styles.title}>Stock Management</Text>
-      <Text style={styles.storeTitle}>{storeTitle}</Text>
-      <Text style={styles.backText}>← Back to list</Text>
+    <ScreenContainer contentStyle={{ padding: 0 }} scroll={false}>
+      <ScreenHeader title="Stock Management" subtitle={storeTitle} />
 
-      <AppCard style={styles.productCard}>
-        <View style={styles.productHeader}>
-          <View>
-            <Text style={styles.productName}>{item.name}</Text>
-            <Text style={styles.meta}>Unknown Manufacturer</Text>
-          </View>
-          <Ionicons name="trash-outline" size={16} color={colors.textMuted} />
-        </View>
-        <View style={styles.countsRow}>
-          <View style={styles.countBox}>
-            <Text style={styles.countLabel}>Total Stock</Text>
-            <Text style={styles.countValue}>{item.quantity}</Text>
-          </View>
-          <View style={styles.countBox}>
-            <Text style={styles.countLabel}>Batches</Text>
-            <Text style={styles.countValue}>{item.batches?.length ?? 0}</Text>
-          </View>
-        </View>
-      </AppCard>
-      <Text style={styles.subtitle}>Batch-wise Stock</Text>
+      <View style={styles.contentContainer}>
+        {/* Back to list */}
+        <Pressable style={styles.backRow} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={16} color={colors.primaryDark} />
+          <Text style={styles.backText}>Back to list</Text>
+        </Pressable>
 
-      <FlatList
-        data={item.batches || []}
-        keyExtractor={(batch) => batch.batchNumber}
-        renderItem={({ item: batch }) => (
-          <AppCard style={styles.batchCard}>
-            <View style={styles.batchTop}>
-              <View>
-                <Text style={styles.batchTitle}>Batch: {batch.batchNumber}</Text>
-                <Text style={styles.meta}>Exp: {batch.expiry}</Text>
-              </View>
-              <View style={styles.qtyWrap}>
-                <Text style={styles.qtyValue}>{batch.quantity}</Text>
-                <Text style={styles.qtyLabel}>units</Text>
-              </View>
+        {/* Product Info Card */}
+        <AppCard style={styles.productCard}>
+          <View style={styles.productHeader}>
+            <View style={styles.productInfo}>
+              <Text
+                style={styles.productName}
+                numberOfLines={2}
+                adjustsFontSizeToFit
+                minimumFontScale={0.75}
+              >
+                {item.name}
+              </Text>
+              <Text style={styles.manufacturer}>Unknown Manufacturer</Text>
             </View>
-            <Text style={styles.meta}>From: {item.distributor}</Text>
-            <View style={styles.rateRow}>
-              <View>
-                <Text style={styles.rateLabel}>Purchase Rate</Text>
-                <Text style={styles.rateValue}>Rs {batch.purchaseRate}</Text>
-              </View>
-              <View>
-                <Text style={styles.rateLabel}>MRP</Text>
-                <Text style={styles.rateValue}>Rs {batch.mrp}</Text>
-              </View>
+            <View style={styles.productIconWrap}>
+              <Ionicons name="medkit" size={20} color={colors.primary} />
             </View>
-          </AppCard>
-        )}
-        ListEmptyComponent={
-          <Text style={styles.empty}>No batches recorded</Text>
-        }
-      />
+          </View>
+
+          <View style={styles.countsRow}>
+            <View style={styles.countBox}>
+              <Text style={styles.countLabel}>Total Stock</Text>
+              <Text style={styles.countValue}>{item.quantity}</Text>
+            </View>
+            <View style={styles.countBox}>
+              <Text style={styles.countLabel}>Batches</Text>
+              <Text style={styles.countValue}>{totalBatches}</Text>
+            </View>
+          </View>
+        </AppCard>
+
+        {/* Batch-wise Stock Section Header */}
+        <View style={styles.sectionHeader}>
+          <View style={styles.sectionDot} />
+          <Text style={styles.sectionTitle}>Batch-wise Stock</Text>
+        </View>
+
+        {/* Batch List */}
+        <FlatList
+          data={item.batches || []}
+          keyExtractor={(batch) => batch.batchNumber}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.batchListContent}
+          renderItem={({ item: batch }) => (
+            <AppCard style={styles.batchCard}>
+              <View style={styles.batchTop}>
+                <View style={styles.batchInfo}>
+                  <View style={styles.batchTitleRow}>
+                    <Ionicons name="layers-outline" size={14} color={colors.primary} />
+                    <Text style={styles.batchTitle}>Batch: {batch.batchNumber}</Text>
+                  </View>
+                  <Text style={styles.batchMeta}>
+                    Exp: {formatExpiryDate(batch.expiry)}
+                  </Text>
+                </View>
+                <View style={styles.qtyBadge}>
+                  <Text style={styles.qtyValue}>{batch.quantity}</Text>
+                  <Text style={styles.qtyLabel}>units</Text>
+                </View>
+              </View>
+
+              <View style={styles.divider} />
+
+              <Text style={styles.distributorText}>
+                From: <Text style={styles.distributorName}>{item.distributor || "Unknown"}</Text>
+              </Text>
+
+              <View style={styles.rateRow}>
+                <View style={styles.rateBox}>
+                  <Text style={styles.rateLabel}>Purchase Rate</Text>
+                  <Text style={styles.rateValue}>₹{batch.purchaseRate}</Text>
+                </View>
+                <View style={styles.rateDivider} />
+                <View style={styles.rateBox}>
+                  <Text style={styles.rateLabel}>MRP</Text>
+                  <Text style={styles.rateValue}>₹{batch.mrp}</Text>
+                </View>
+              </View>
+            </AppCard>
+          )}
+          ListEmptyComponent={
+            <View style={styles.emptyBatchWrap}>
+              <Ionicons name="cube-outline" size={36} color={colors.border} />
+              <Text style={styles.emptyBatchText}>No batches recorded</Text>
+            </View>
+          }
+        />
+      </View>
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  title: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: colors.primaryDark,
+  loaderWrap: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
   },
-  storeTitle: {
-    color: colors.primaryDark,
-    textAlign: "center",
-    fontSize: 22,
-    fontWeight: "700",
+  loaderText: {
+    color: colors.textMuted,
+    fontSize: 13,
+    marginTop: spacing.xs,
+  },
+  emptyTitle: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: "600",
+    marginTop: spacing.xs,
+  },
+  backButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  backButtonText: {
+    color: colors.primary,
+    fontWeight: "600",
+    fontSize: 13,
+  },
+  contentContainer: {
+    flex: 1,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.sm,
+  },
+  backRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: spacing.sm,
+    paddingVertical: 4,
   },
   backText: {
     color: colors.primaryDark,
     fontWeight: "600",
     fontSize: 13,
   },
-  subtitle: {
-    color: colors.text,
-    fontWeight: "700",
-    fontSize: 16,
-  },
   productCard: {
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#EDEFF2",
-    shadowColor: "#000000",
+    borderColor: "#E0EDE6",
+    shadowColor: "#0C2A1F",
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.06,
-    shadowRadius: 14,
+    shadowOpacity: 0.07,
+    shadowRadius: 16,
     elevation: 5,
+    marginBottom: spacing.md,
+    padding: spacing.md,
+    backgroundColor: "#FFFFFF",
   },
   productHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-start",
+  },
+  productInfo: {
+    flex: 1,
+    marginRight: spacing.sm,
   },
   productName: {
     color: colors.text,
     fontWeight: "800",
-    fontSize: 18,
+    fontSize: 17,
+    lineHeight: 22,
+  },
+  manufacturer: {
+    color: colors.textMuted,
+    fontSize: 12,
+    marginTop: 3,
+  },
+  productIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: colors.primarySoft,
+    alignItems: "center",
+    justifyContent: "center",
   },
   countsRow: {
     flexDirection: "row",
     gap: 10,
-    marginTop: 10,
+    marginTop: 14,
   },
   countBox: {
-    backgroundColor: "#F6FAF8",
+    backgroundColor: "#F4FAF7",
     borderRadius: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    minWidth: 84,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    minWidth: 90,
     borderWidth: 1,
-    borderColor: "#DCEBE5",
+    borderColor: "#D4EAE0",
   },
   countLabel: {
     color: colors.textMuted,
     fontSize: 11,
+    fontWeight: "500",
   },
   countValue: {
     color: colors.primaryDark,
     fontWeight: "800",
-    fontSize: 24,
-    lineHeight: 28,
+    fontSize: 26,
+    lineHeight: 30,
+    marginTop: 2,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: spacing.sm,
+  },
+  sectionDot: {
+    width: 4,
+    height: 18,
+    borderRadius: 2,
+    backgroundColor: colors.primary,
+  },
+  sectionTitle: {
+    color: colors.text,
+    fontWeight: "700",
+    fontSize: 15,
+  },
+  batchListContent: {
+    paddingBottom: spacing.xl,
   },
   batchCard: {
     marginBottom: 10,
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#ECEFF3",
-    shadowColor: "#000000",
+    borderColor: "#E8EDF0",
+    shadowColor: "#0C2A1F",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.05,
-    shadowRadius: 10,
+    shadowRadius: 12,
     elevation: 3,
+    padding: spacing.md,
+    backgroundColor: "#FFFFFF",
   },
   batchTop: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
+  batchInfo: {
+    flex: 1,
+  },
+  batchTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
   batchTitle: {
     color: colors.text,
     fontWeight: "700",
     fontSize: 14,
   },
-  meta: {
+  batchMeta: {
     color: colors.textMuted,
-    marginTop: 2,
     fontSize: 12,
+    marginTop: 3,
+    marginLeft: 20,
   },
-  qtyWrap: {
-    alignItems: "flex-end",
+  qtyBadge: {
+    alignItems: "center",
+    backgroundColor: colors.primarySoft,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    minWidth: 50,
   },
   qtyValue: {
-    color: colors.text,
-    fontSize: 28,
+    color: colors.primaryDark,
+    fontSize: 22,
     fontWeight: "800",
-    lineHeight: 30,
+    lineHeight: 26,
   },
   qtyLabel: {
     color: colors.textMuted,
-    marginTop: -1,
-    fontSize: 11,
+    fontSize: 10,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: "#EFF2F5",
+    marginVertical: 10,
+  },
+  distributorText: {
+    color: colors.textMuted,
+    fontSize: 12,
+    marginBottom: 10,
+  },
+  distributorName: {
+    color: colors.text,
+    fontWeight: "600",
   },
   rateRow: {
-    marginTop: 10,
     flexDirection: "row",
-    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "#F8FAFB",
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+  },
+  rateBox: {
+    flex: 1,
+  },
+  rateDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: "#E0E5EA",
+    marginHorizontal: 12,
   },
   rateLabel: {
     color: colors.textMuted,
     fontSize: 11,
+    fontWeight: "500",
   },
   rateValue: {
     color: colors.text,
     fontWeight: "700",
-    fontSize: 13,
+    fontSize: 14,
+    marginTop: 2,
   },
-  empty: {
+  emptyBatchWrap: {
+    alignItems: "center",
+    paddingVertical: spacing.xl,
+    gap: spacing.xs,
+  },
+  emptyBatchText: {
     textAlign: "center",
     color: colors.textMuted,
-    marginTop: spacing.md,
     fontSize: 13,
   },
 });

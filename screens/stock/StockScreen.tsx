@@ -3,6 +3,22 @@ import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import React, { useMemo, useState } from "react";
+
+const formatExpiryDate = (dateStr: string) => {
+  if (!dateStr) return "N/A";
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const months = [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
+    return `${months[d.getMonth()]} ${d.getFullYear()}`;
+  } catch {
+    return dateStr;
+  }
+};
+
 import {
   ActivityIndicator,
   FlatList,
@@ -16,10 +32,12 @@ import {
 import Toast from "react-native-toast-message";
 import { AppCard } from "../../components/common/AppCard";
 import { ScreenContainer } from "../../components/common/ScreenContainer";
+import { ScreenHeader } from "../../components/common/ScreenHeader";
 import type { RootStackParamList, TabParamList } from "../../navigation/types";
 import { useAuthStore } from "../../store/authStore";
 import { useStockStore } from "../../store/stockStore";
 import { colors, radius, spacing } from "../../utils/theme";
+import { stockApi } from "../../services/api";
 
 type FilterType = "all" | "distributor";
 type Props = BottomTabScreenProps<TabParamList, "Stock">;
@@ -32,6 +50,7 @@ export function StockScreen({}: Props) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterType>("all");
   const [distributor, setDistributor] = useState("");
+  const [expandedDistributor, setExpandedDistributor] = useState<string | null>(null);
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
   const [savingManual, setSavingManual] = useState(false);
   const [manualName, setManualName] = useState("");
@@ -41,6 +60,10 @@ export function StockScreen({}: Props) {
   const [manualPurchase, setManualPurchase] = useState("");
   const [manualMrp, setManualMrp] = useState("");
   const [manualQty, setManualQty] = useState("");
+  const [isEditDistributorModalOpen, setIsEditDistributorModalOpen] = useState(false);
+  const [editingDistributor, setEditingDistributor] = useState("");
+  const [newDistributorName, setNewDistributorName] = useState("");
+  const [updatingDistributor, setUpdatingDistributor] = useState(false);
 
   React.useEffect(() => {
     fetchStock().catch(() =>
@@ -59,6 +82,19 @@ export function StockScreen({}: Props) {
       return matchesSearch && matchesDistributor;
     });
   }, [items, search, filter, distributor]);
+
+  const groupedByDistributor = useMemo(() => {
+    if (filter !== "distributor") return [];
+    const map = new Map<string, typeof items>();
+    items.forEach((item) => {
+      const d = item.distributor || "Unknown";
+      if (distributor && !d.toLowerCase().includes(distributor.toLowerCase())) return;
+      if (!map.has(d)) map.set(d, []);
+      map.get(d)!.push(item);
+    });
+    return Array.from(map.entries()).map(([name, meds]) => ({ name, meds }));
+  }, [items, filter, distributor]);
+
   const storeTitle = `${user?.name?.trim() || "My"}'s Medical Store`;
 
   const closeManualModal = () => {
@@ -131,10 +167,10 @@ export function StockScreen({}: Props) {
   };
 
   return (
-    <ScreenContainer>
-      <Text style={styles.title}>Stock Management</Text>
-      <Text style={styles.storeTitle}>{storeTitle}</Text>
-
+    <ScreenContainer contentStyle={{ padding: 0 }}>
+      <ScreenHeader title="Stock Management" />
+      
+      <View style={styles.contentContainer}>
       <View style={styles.searchRow}>
         <View style={styles.searchWrap}>
           <Ionicons name="search" size={18} color={colors.textMuted} />
@@ -213,39 +249,111 @@ export function StockScreen({}: Props) {
         <ActivityIndicator size="large" color={colors.primary} />
       ) : null}
 
-      <FlatList
-        data={filtered}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <Pressable
-            onPress={() =>
-              rootNavigation.navigate("StockDetail", { stockId: item.id })
-            }
-          >
-            <AppCard style={styles.itemCard}>
-              <View style={styles.itemRow}>
-                <View style={styles.itemIconWrap}>
-                  <Ionicons name="cube-outline" size={18} color="#F4A100" />
+      {filter === "all" ? (
+        <FlatList
+          data={filtered}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <Pressable
+              onPress={() =>
+                rootNavigation.navigate("StockDetail", { stockId: item.id })
+              }
+            >
+              <AppCard style={styles.itemCard}>
+                <View style={styles.itemRow}>
+                  <View style={styles.itemIconWrap}>
+                    <Ionicons name="cube-outline" size={18} color="#F4A100" />
+                  </View>
+                  <View style={styles.itemTextWrap}>
+                    <Text style={styles.name}>{item.name}</Text>
+                    <Text style={styles.meta}>Qty:{item.quantity}</Text>
+                    <Text style={styles.meta}>Exp: {formatExpiryDate(item.expiry)}</Text>
+                  </View>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={18}
+                    color={colors.textMuted}
+                  />
+                  <Ionicons name="trash-outline" size={16} color={colors.textMuted} />
                 </View>
-                <View style={styles.itemTextWrap}>
-                  <Text style={styles.name}>{item.name}</Text>
-                  <Text style={styles.meta}>Qty:{item.quantity}</Text>
-                  <Text style={styles.meta}>Exp: {item.expiry}</Text>
-                </View>
-                <Ionicons
-                  name="chevron-forward"
-                  size={18}
-                  color={colors.textMuted}
-                />
-                <Ionicons name="trash-outline" size={16} color={colors.textMuted} />
+              </AppCard>
+            </Pressable>
+          )}
+          ListEmptyComponent={
+            <Text style={styles.empty}>No medicines found</Text>
+          }
+        />
+      ) : (
+        <FlatList
+          data={groupedByDistributor}
+          keyExtractor={(item) => item.name}
+          renderItem={({ item }) => {
+            const isExpanded = expandedDistributor === item.name;
+            return (
+              <View style={styles.distributorGroup}>
+                <Pressable
+                  style={styles.distributorHeader}
+                  onPress={() => setExpandedDistributor(isExpanded ? null : item.name)}
+                >
+                  <View style={styles.distributorHeaderLeft}>
+                    <Ionicons name="business-outline" size={20} color={colors.primary} />
+                    <Text style={styles.distributorName}>{item.name}</Text>
+                  </View>
+                  <View style={styles.distributorHeaderRight}>
+                    <Text style={styles.distributorCount}>{item.meds.length} items</Text>
+                    <Pressable
+                      style={styles.editDistributorBtn}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        setEditingDistributor(item.name);
+                        setNewDistributorName(item.name);
+                        setIsEditDistributorModalOpen(true);
+                      }}
+                    >
+                      <Ionicons name="pencil" size={16} color={colors.primary} />
+                    </Pressable>
+                    <Ionicons name={isExpanded ? "chevron-up" : "chevron-down"} size={20} color={colors.textMuted} />
+                  </View>
+                </Pressable>
+                {isExpanded && (
+                  <View style={styles.distributorItems}>
+                    {item.meds.map((med) => (
+                      <Pressable
+                        key={med.id}
+                        onPress={() =>
+                          rootNavigation.navigate("StockDetail", { stockId: med.id })
+                        }
+                      >
+                        <AppCard style={styles.itemCard}>
+                          <View style={styles.itemRow}>
+                            <View style={styles.itemIconWrap}>
+                              <Ionicons name="cube-outline" size={18} color="#F4A100" />
+                            </View>
+                            <View style={styles.itemTextWrap}>
+                              <Text style={styles.name}>{med.name}</Text>
+                              <Text style={styles.meta}>Qty:{med.quantity}</Text>
+                              <Text style={styles.meta}>Exp: {formatExpiryDate(med.expiry)}</Text>
+                            </View>
+                            <Ionicons
+                              name="chevron-forward"
+                              size={18}
+                              color={colors.textMuted}
+                            />
+                            <Ionicons name="trash-outline" size={16} color={colors.textMuted} />
+                          </View>
+                        </AppCard>
+                      </Pressable>
+                    ))}
+                  </View>
+                )}
               </View>
-            </AppCard>
-          </Pressable>
-        )}
-        ListEmptyComponent={
-          <Text style={styles.empty}>No medicines found</Text>
-        }
-      />
+            );
+          }}
+          ListEmptyComponent={
+            <Text style={styles.empty}>No distributors found</Text>
+          }
+        />
+      )}
 
       <Modal
         visible={isManualModalOpen}
@@ -369,21 +477,86 @@ export function StockScreen({}: Props) {
           </View>
         </View>
       </Modal>
+      <Modal
+        visible={isEditDistributorModalOpen}
+        animationType="fade"
+        transparent
+        onRequestClose={() => {
+          if (!updatingDistributor) setIsEditDistributorModalOpen(false);
+        }}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalTitle}>Edit Distributor</Text>
+              </View>
+              <Pressable
+                style={styles.modalCloseBtn}
+                onPress={() => {
+                  if (!updatingDistributor) setIsEditDistributorModalOpen(false);
+                }}
+                disabled={updatingDistributor}
+              >
+                <Ionicons name="close" size={20} color={colors.textMuted} />
+              </Pressable>
+            </View>
+            <Text style={styles.inputLabel}>New Distributor Name</Text>
+            <TextInput
+              style={styles.modalInput}
+              value={newDistributorName}
+              onChangeText={setNewDistributorName}
+              placeholder="Enter new name"
+              placeholderTextColor={colors.textMuted}
+            />
+            <View style={styles.modalFooter}>
+              <Pressable
+                style={[styles.modalButton, styles.modalCancelBtn]}
+                onPress={() => setIsEditDistributorModalOpen(false)}
+                disabled={updatingDistributor}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.modalButton, styles.modalPrimaryBtn]}
+                onPress={async () => {
+                  if (!newDistributorName.trim()) {
+                     Toast.show({ type: "error", text1: "Name is required" });
+                     return;
+                  }
+                  setUpdatingDistributor(true);
+                  try {
+                    await stockApi.updateDistributor(editingDistributor, newDistributorName.trim());
+                    await fetchStock();
+                    setIsEditDistributorModalOpen(false);
+                    Toast.show({ type: "success", text1: "Distributor updated" });
+                  } catch {
+                    Toast.show({ type: "error", text1: "Failed to update distributor" });
+                  } finally {
+                    setUpdatingDistributor(false);
+                  }
+                }}
+                disabled={updatingDistributor}
+              >
+                <Text style={styles.modalPrimaryText}>
+                  {updatingDistributor ? "Saving..." : "Save"}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+      </View>
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  title: {
-    fontSize: 28,
-    fontWeight: "800",
-    color: colors.primaryDark,
-  },
-  storeTitle: {
-    color: colors.primaryDark,
-    fontSize: 26,
-    fontWeight: "800",
-    textAlign: "center",
+  contentContainer: {
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.xl,
+    gap: spacing.md,
+    flex: 1,
   },
   searchRow: {
     flexDirection: "row",
@@ -423,6 +596,15 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "#FFFFFF",
+  },
+  search: {
+    height: 44,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    color: colors.text,
     backgroundColor: "#FFFFFF",
   },
   filterRow: {
@@ -472,6 +654,47 @@ const styles = StyleSheet.create({
   },
   itemTextWrap: {
     flex: 1,
+  },
+  distributorGroup: {
+    marginBottom: spacing.sm,
+  },
+  distributorHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#FFFFFF",
+    padding: spacing.md,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  distributorHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  distributorName: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: colors.text,
+  },
+  distributorHeaderRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+  },
+  distributorCount: {
+    fontSize: 13,
+    color: colors.textMuted,
+    fontWeight: "600",
+  },
+  distributorItems: {
+    marginTop: spacing.sm,
+    paddingLeft: spacing.sm,
+  },
+  editDistributorBtn: {
+    padding: 4,
+    marginRight: 4,
   },
   name: {
     fontWeight: "700",

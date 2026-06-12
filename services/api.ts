@@ -210,10 +210,15 @@ export const stockApi = {
     api.post("/stock/add-from-ocr", {
       supplierName: payload.supplierName,
       invoiceNumber: payload.invoiceNumber,
-      invoiceDate: payload.invoiceDate,
+      invoiceDate: payload.invoiceDate?.trim()
+        ? payload.invoiceDate.trim()
+        : new Date().toISOString().slice(0, 10),
       items: payload.medicines.map((item) => ({
           name: item.name?.trim() || "",
-          distributor: item.distributor || "Unknown",
+          distributor:
+            item.distributor?.trim() ||
+            payload.supplierName?.trim() ||
+            "Unknown",
           batchNumber: item.batchNumber?.trim() || "",
           expiryDate: (item.expiryDate || item.expiry || "").trim(),
           quantity: Number(item.quantity) || 0,
@@ -238,10 +243,20 @@ export const stockApi = {
         },
       ],
     }),
+  updateDistributor: (oldName: string, newName: string) =>
+    api.put("/stock/distributor", { oldName, newName }),
+  disposeBatch: (id: string, batchNumber: string) =>
+    api.delete(`/stock/${id}/batch/${encodeURIComponent(batchNumber)}`),
 };
 
 export const dashboardApi = {
   getStats: () => api.get<DashboardResponse>("/dashboard"),
+};
+
+export const profileApi = {
+  getProfile: () => api.get("/auth/profile"),
+  updateProfile: (data: { name: string; medicalName: string; address: string; drugLicense: string }) =>
+    api.put("/auth/profile", data),
 };
 
 export { TOKEN_KEY, USER_KEY, clearAuthStorage };

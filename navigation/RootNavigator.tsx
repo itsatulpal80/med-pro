@@ -5,6 +5,8 @@ import { LoginScreen } from "../screens/auth/LoginScreen";
 import { SignupScreen } from "../screens/auth/SignupScreen";
 import { OCRPreviewScreen } from "../screens/ocr/OCRPreviewScreen";
 import { StockDetailScreen } from "../screens/stock/StockDetailScreen";
+import { SettingsScreen } from "../screens/settings/SettingsScreen";
+import { AlertsScreen } from "../screens/alerts/AlertsScreen";
 import { useAuthStore } from "../store/authStore";
 import { colors } from "../utils/theme";
 import { TabNavigator } from "./TabNavigator";
@@ -50,7 +52,17 @@ export function RootNavigator() {
           <RootStack.Screen
             name="StockDetail"
             component={StockDetailScreen}
-            options={{ title: "Stock Detail" }}
+            options={{ headerShown: false }}
+          />
+          <RootStack.Screen
+            name="Settings"
+            component={SettingsScreen}
+            options={{ headerShown: false }}
+          />
+          <RootStack.Screen
+            name="Alerts"
+            component={AlertsScreen}
+            options={{ headerShown: false }}
           />
         </>
       ) : (

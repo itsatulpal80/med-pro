@@ -18,4 +18,6 @@ export type RootStackParamList = {
   Auth: NavigatorScreenParams<AuthStackParamList>;
   OCRPreview: undefined;
   StockDetail: { stockId: string };
+  Settings: undefined;
+  Alerts: undefined;
 };

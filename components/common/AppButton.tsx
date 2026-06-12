@@ -6,7 +6,8 @@ import {
   Text,
   type PressableProps,
   type StyleProp,
-  type ViewStyle,
+  type TextStyle,
+  type ViewStyle
 } from "react-native";
 import { colors, radius, spacing } from "../../utils/theme";
 
@@ -15,13 +16,14 @@ type Props = PressableProps & {
   loading?: boolean;
   variant?: "primary" | "secondary" | "ghost";
   style?: StyleProp<ViewStyle>;
+  textStyle?: StyleProp<TextStyle>; // Add this
 };
-
 export function AppButton({
   title,
   loading,
   variant = "primary",
   style,
+  textStyle, // Add this
   disabled,
   ...rest
 }: Props) {
@@ -47,9 +49,13 @@ export function AppButton({
         />
       ) : (
         <Text
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.3}
           style={[
             styles.text,
             variant !== "primary" && { color: colors.primary },
+            textStyle, // Add this
           ]}
         >
           {title}
